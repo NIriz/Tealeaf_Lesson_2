@@ -1,6 +1,6 @@
 
 class Card
-  attr_accessor :suit, :face_value
+  attr_reader :suit, :face_value
 
   def initialize(suit, face_value)
     @suit = suit
@@ -13,7 +13,7 @@ class Card
 end
 
 class Deck 
-  attr_accessor :cards
+  attr_reader :cards
 
   SUITS = ["Hearts", "Diamonds", "Spades", "Clubs"]
   FACE_VALUES = ["Queen", "King", "Jack", "Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
@@ -36,7 +36,6 @@ end
   
 
 module Hand 
-
   def display_hand
     puts "#{name} has:"
     cards.each do |card|
@@ -62,7 +61,6 @@ module Hand
       break if total <= 21
       total -= 10
     end
-
     total
   end
   
@@ -72,46 +70,9 @@ module Hand
   end
 
   def add_and_display_new_card(new_card)
-    cards << new_card
+    add(new_card)
     puts "=> The new card is #{new_card}"
     puts "=> The total number of points is #{calculate_total}."
-  end
-
-  def is_busted?
-    calculate_total > Blackjack::BLACKJACK_AMOUNT
-  end
-
-  def twentyone?
-    calculate_total == Blackjack::BLACKJACK_AMOUNT
-  end
-
-  def bust_or_21(human_or_dealer)
-    if human_or_dealer.is_busted?
-      puts "#{human_or_dealer.name} is over 21, busted!"
-      play_again
-    elsif human_or_dealer.twentyone?
-      puts "#{human_or_dealer.name} hit Blackjack!"
-      play_again
-    else
-      false
-    end
-  end
-
-  def play_again
-    puts "Would you like to play again? (yes/no)"
-    answer = gets.chomp.downcase
-    if answer == 'yes'
-      system 'clear'
-      puts "Starting a new game."
-      puts
-      deck = Deck.new
-      human.cards = []
-      dealer.cards = []
-      play
-    else
-      puts "Bye!"
-      exit
-    end
   end
 end
 
@@ -130,8 +91,7 @@ end
 class Dealer
   include Hand
 
-  attr_accessor :cards
-  attr_reader :name
+  attr_accessor :cards, :name 
 
   def initialize
     @name = "Dealer"
@@ -142,18 +102,15 @@ end
 
 
 class Blackjack 
+  attr_accessor :deck, :human, :dealer
+
   BLACKJACK_AMOUNT = 21
   DEALER_MINIMUM = 17
 
-  include Hand
-
-  attr_reader :dealer 
-  attr_accessor :deck, :human
-
   def initialize
+    @deck = Deck.new
     @human = Player.new("Player")
     @dealer = Dealer.new
-    @deck = Deck.new
   end
 
   def welcome
@@ -162,26 +119,12 @@ class Blackjack
     puts "You will get a chance to hit (for more cards) or stay after I deal you 2 cards, good luck."
     puts
     puts "-----------------*---------------*----------------".center(80)
+    puts
   end
 
   def set_player_name
     puts "What is your name?"
     human.name = gets.chomp
-  end
-
-
-  def compare_hands
-    case
-    when human.calculate_total == dealer.calculate_total
-      puts "It's the rare tie!"
-      play_again
-    when human.calculate_total > dealer.calculate_total
-      puts "#{human.name} won!"
-      play_again
-    else
-      puts "The house wins this round!"
-      play_again
-    end
   end
 
   def deal_cards
@@ -196,6 +139,39 @@ class Blackjack
     puts "=> Dealer's first card is hidden for now, the second one is:\n#{dealer.cards[1]}"
   end
 
+  def is_busted?(human_or_dealer)
+    human_or_dealer.calculate_total > BLACKJACK_AMOUNT
+  end
+
+  def twentyone?(human_or_dealer)
+    human_or_dealer.calculate_total == BLACKJACK_AMOUNT
+  end
+
+  def bust_or_21(human_or_dealer)
+    if is_busted?(human_or_dealer)
+      puts "#{human_or_dealer.name} is over 21, busted!"
+      play_again
+    elsif twentyone?(human_or_dealer)
+      puts "#{human_or_dealer.name} hit Blackjack!"
+      play_again
+    else
+      false
+    end
+  end
+
+  def compare_hands
+    case
+    when human.calculate_total == dealer.calculate_total
+      puts "It's the rare tie!"
+      play_again
+    when human.calculate_total > dealer.calculate_total
+      puts "#{human.name} won!"
+      play_again
+    else
+      puts "The house wins this round!"
+      play_again
+    end
+  end
 
   def human_turn
     if bust_or_21(human) == false
@@ -232,6 +208,29 @@ class Blackjack
     end
   end
 
+  def play_again
+    puts "Would you like to play again? (yes/no)"
+    answer = gets.chomp.downcase
+    if answer == 'yes'
+      system 'clear'
+      puts "Starting a new game."
+      puts
+      deck = Deck.new
+      human.cards = []
+      dealer.cards = []
+      deal_cards
+      show_flop
+      puts
+      human_turn
+      system 'clear'
+      dealer_turn
+      compare_hands
+      play_again
+    else
+      puts "Bye!"
+      exit
+    end
+  end
 
   def play
     welcome
